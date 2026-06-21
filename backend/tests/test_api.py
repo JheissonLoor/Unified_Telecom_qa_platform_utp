@@ -51,8 +51,8 @@ async def create_evaluation_call(uniqueid: str) -> int:
     try:
         return await connection.fetchval(
             "INSERT INTO call_detail_records (calldate, src, dst, duration, billsec, "
-            "disposition, uniqueid) VALUES (CURRENT_TIMESTAMP, '2001', '2002', 60, 55, "
-            "'ANSWERED', $1) RETURNING id",
+            "disposition, amaflags, uniqueid) VALUES (CURRENT_TIMESTAMP, '2001', '2002', "
+            "60, 55, 'ANSWERED', 0, $1) RETURNING id",
             uniqueid,
         )
     finally:

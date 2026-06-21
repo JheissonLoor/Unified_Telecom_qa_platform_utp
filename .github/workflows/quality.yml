@@ -96,6 +96,4 @@ jobs:
           docker compose config --quiet
       - name: Verify repository security controls
         shell: pwsh
-        run: |
-          ./tests/security/verify_repository.ps1
-          Remove-Item .env
+        run: ./tests/security/verify_repository.ps1
