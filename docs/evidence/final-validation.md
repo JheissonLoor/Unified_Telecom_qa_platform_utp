@@ -26,7 +26,7 @@
 | Backend | 9/9; cobertura 82.21%; filtros, MOS, DND, reportes, usuarios y evaluacion QA |
 | npm audit | 0 vulnerabilidades |
 | Trivy | 0 vulnerabilidades, 0 secretos, 0 misconfiguraciones |
-| SonarQube | Gate OK, cobertura 86.3%, 0 bugs/vulnerabilidades, 1 code smell, 0 hotspots |
+| SonarQube | Gate OK, cobertura 86.2%, 0 bugs/vulnerabilidades, 5 code smells, 0 hotspots |
 
 ## Trazabilidad de seguridad
 
@@ -41,5 +41,5 @@
 
 1. Sustituir la CA de laboratorio por PKI corporativa antes de produccion.
 2. Ejecutar compatibilidad adicional con dos softphones fisicos y la red destino.
-3. Resolver el code smell no bloqueante registrado
+3. Resolver progresivamente los cinco code smells no bloqueantes registrados
    por SonarQube y mantener el gate de cobertura global >=80%.

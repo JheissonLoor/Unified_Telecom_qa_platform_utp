@@ -25,7 +25,7 @@ fisicos en la red objetivo.
 | Auditoria | Login, lectura SIP/CDR, inicio/fin y provisionamiento persistidos | Aprobado |
 | Carga | k6: 300/300, 0% error, p95 2.34 ms | Aprobado |
 | Trivy | 0 vulnerabilidades, 0 secretos, 0 misconfiguraciones | Aprobado |
-| SonarQube | Gate OK; cobertura 86.3%; 0 bugs, 0 vulnerabilidades, 1 code smell y 0 hotspots | Aprobado |
+| SonarQube | Gate OK; cobertura 86.2%; 0 bugs, 0 vulnerabilidades, 5 code smells y 0 hotspots | Aprobado |
 | npm audit | 0 vulnerabilidades | Aprobado |
 
 ## Observaciones
@@ -37,8 +37,8 @@ fisicos en la red objetivo.
   proyecto que se ejecuta en paralelo.
 - La grabacion se limita al laboratorio; produccion requiere cifrado en reposo,
   consentimiento y politica formal de retencion/borrado.
-- El gate reproducible exige cobertura global >=80%. El code smell de
-  mantenibilidad restante queda documentado como deuda tecnica no bloqueante.
+- El gate reproducible exige cobertura global >=80%. Los cinco code smells de
+  mantenibilidad quedan documentados como deuda tecnica no bloqueante.
 
 ## Criterio de liberacion
 
