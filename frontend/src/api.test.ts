@@ -94,7 +94,9 @@ describe("api", () => {
       .mockResolvedValueOnce(new Response(blob, { status: 200 }))
       .mockResolvedValueOnce(new Response(null, { status: 404 }));
 
-    await expect(api.recording("cdr/1")).resolves.toBeInstanceOf(Blob);
+    const downloaded = await api.recording("cdr/1");
+    expect(downloaded.size).toBeGreaterThan(0);
+    expect(downloaded.type).toBeTruthy();
     expect(fetchMock.mock.calls[0][0]).toBe("/api/recordings/cdr%2F1");
     expect(fetchMock.mock.calls[0][1]?.headers).toEqual({ Authorization: "Bearer token" });
     await expect(api.recording("missing")).rejects.toThrow("Grabacion no disponible");
