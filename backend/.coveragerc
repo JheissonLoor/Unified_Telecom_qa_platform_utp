@@ -1,0 +1,8 @@
+[run]
+relative_files = true
+source = app
+concurrency = thread
+
+[report]
+show_missing = true
+skip_empty = true

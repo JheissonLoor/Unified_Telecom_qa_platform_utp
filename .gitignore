@@ -1,0 +1,57 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# IDE and operating system
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime and evidence artifacts
+logs/
+artifacts/
+reports/generated/
+reports/trivy/*
+!reports/trivy/README.md
+reports/sonarqube/*
+!reports/sonarqube/README.md
+reports/test-results/*
+!reports/test-results/README.md
+reports/screenshots/*
+!reports/screenshots/README.md
+*.log
+*.pid
+
+# Local certificates and Asterisk runtime
+infrastructure/certificates/generated/
+infrastructure/asterisk/runtime/
+infrastructure/asterisk/generated/*.conf
+!infrastructure/asterisk/generated/README.md

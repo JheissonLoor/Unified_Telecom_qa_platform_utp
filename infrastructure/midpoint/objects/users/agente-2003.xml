@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<user xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+      oid="20000000-0000-0000-0000-000000000003">
+  <name>agente3</name>
+  <fullName>Agente aprovisionado 2003</fullName>
+  <employeeNumber>2003</employeeNumber>
+  <organizationalUnit>AgenteCallCenter</organizationalUnit>
+  <activation><administrativeStatus>enabled</administrativeStatus></activation>
+  <assignment>
+    <targetRef oid="10000000-0000-0000-0000-000000000001" type="RoleType"/>
+  </assignment>
+</user>

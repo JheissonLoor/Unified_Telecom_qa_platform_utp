@@ -1,0 +1,6 @@
+[general]
+rtpstart=${HOST_RTP_START}
+rtpend=${HOST_RTP_END}
+icesupport=true
+strictrtp=yes
+probation=4

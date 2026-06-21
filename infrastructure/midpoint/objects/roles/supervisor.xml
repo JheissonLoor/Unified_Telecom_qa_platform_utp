@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<role xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+      oid="10000000-0000-0000-0000-000000000002">
+  <name>Supervisor</name>
+  <displayName>Supervisor</displayName>
+  <description>Consulta actividad y reportes de llamadas.</description>
+</role>

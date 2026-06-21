@@ -1,0 +1,7 @@
+[telecom]
+enabled=yes
+dsn=telecom
+username=telecom_app
+password=${POSTGRES_PASSWORD}
+pre-connect=yes
+sanitysql=select 1
