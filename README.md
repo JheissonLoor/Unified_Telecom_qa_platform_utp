@@ -1,5 +1,7 @@
 # Unified Telecom QA Platform
 
+[![Quality Gate](https://github.com/JheissonLoor/unified-telecom-qa-platform/actions/workflows/quality.yml/badge.svg)](https://github.com/JheissonLoor/unified-telecom-qa-platform/actions/workflows/quality.yml)
+
 Plataforma academica de comunicaciones unificadas con Asterisk PJSIP, SIP.js,
 React, FastAPI, PostgreSQL, midPoint, coturn, Nginx y controles QA/ISO.
 
