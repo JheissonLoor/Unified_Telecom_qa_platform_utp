@@ -1,6 +1,6 @@
 # Unified Telecom QA Platform
 
-[![Quality Gate](https://github.com/JheissonLoor/unified-telecom-qa-platform/actions/workflows/quality.yml/badge.svg)](https://github.com/JheissonLoor/unified-telecom-qa-platform/actions/workflows/quality.yml)
+[![Quality Gate](https://github.com/JheissonLoor/Unified_Telecom_qa_platform_utp/actions/workflows/quality.yml/badge.svg)](https://github.com/JheissonLoor/Unified_Telecom_qa_platform_utp/actions/workflows/quality.yml)
 
 Plataforma academica de comunicaciones unificadas con Asterisk PJSIP, SIP.js,
 React, FastAPI, PostgreSQL, midPoint, coturn, Nginx y controles QA/ISO.
@@ -15,11 +15,13 @@ interferir con otros laboratorios Docker del mismo equipo.
 - Extensiones SIP tradicionales 1001/1002 y WebRTC 2001/2002.
 - Voz y video desde navegador con WSS, ICE y DTLS-SRTP.
 - Consola de agente con DND, aceptacion/rechazo, mute, camara, altavoz,
-  retencion SIP, transferencia, DTMF y conferencia 700.
+  retencion SIP, transferencia, DTMF, conferencia de voz 700 y video SFU 702.
 - CDR PostgreSQL con busqueda, filtros, paginacion, grabacion WAV protegida,
   estadisticas WebRTC y MOS calculado.
 - Paneles RBAC de monitoreo, evaluaciones QA, reportes, auditoria y gestion de
   usuarios sincronizados con midPoint.
+- Eventos en vivo autenticados desde Asterisk AMI al navegador y reporte PDF
+  generado en servidor con auditoria de descarga.
 - Objetos midPoint y sincronizacion de usuarios/roles/extensiones hacia Asterisk.
 - Health checks, redes separadas, certificados locales y secretos fuera de Git.
 - pytest, Vitest, Playwright, k6, SIPp, SonarQube y Trivy.
@@ -76,9 +78,11 @@ rangos `HOST_*` diferentes en cada proyecto.
 | 600 | Echo test | Segun endpoint origen |
 | 700 | Conferencia ConfBridge | Segun endpoint origen |
 | 701 | IVR de demostracion y echo | Segun endpoint origen |
+| 702 | Videoconferencia ConfBridge SFU | WSS/WebRTC con video |
 
 Los secretos SIP se generan en `.env`. Asterisk admite Opus, PCMA, PCMU, VP8 y
-H.264 cuando ambos extremos coinciden. No mezcla ni transcodifica video.
+H.264 cuando ambos extremos coinciden. La sala 702 reenvia video compatible en
+modo SFU; no transcodifica codecs diferentes.
 
 ## midPoint
 

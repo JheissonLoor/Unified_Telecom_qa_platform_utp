@@ -14,6 +14,8 @@
 | HU-10 | Como administrador IAM, quiero asignar una extension | Unicidad; rango permitido; aplicacion controlada en Asterisk |
 | HU-11 | Como auditor, quiero trazar requisito, prueba y evidencia | IDs enlazados; resultado reproducible; responsable y fecha |
 | HU-12 | Como operador, quiero levantar la plataforma de forma repetible | Un comando documentado; health checks; datos sinteticos |
+| HU-13 | Como agente, quiero entrar a una videoconferencia | Sala 702; dos participantes; video remoto; salida limpia |
+| HU-14 | Como supervisor, quiero datos y reportes actuales | Eventos autenticados; MOS actualizado; PDF descargable y auditado |
 
 ## Definicion de terminado para cada historia
 

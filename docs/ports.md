@@ -12,6 +12,7 @@
 | 49160-49200 | UDP | coturn | Puertos de relay |
 | 8080 | TCP/HTTP | midPoint | Administracion IAM local |
 | 9000 | TCP/HTTP | SonarQube | Perfil QA opcional |
+| 5038 | TCP/AMI interno | Asterisk | Eventos hacia FastAPI; nunca publicado al host |
 
 PostgreSQL, backend, frontend y HTTP interno de Asterisk no se publican al host.
 Todos los puertos host se pueden cambiar con variables `HOST_*` de `.env`; los

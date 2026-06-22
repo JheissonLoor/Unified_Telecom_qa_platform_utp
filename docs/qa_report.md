@@ -2,7 +2,7 @@
 
 ## Dictamen
 
-Version evaluada: `1.1.0`, 21 de junio de 2026. La plataforma queda **aprobada
+Version evaluada: `1.2.0`, 22 de junio de 2026 UTC. La plataforma queda **aprobada
 para demostracion academica con observaciones**. No se recomienda produccion sin
 PKI corporativa, alta disponibilidad, recuperacion y pruebas con dispositivos
 fisicos en la red objetivo.
@@ -13,11 +13,13 @@ fisicos en la red objetivo.
 |---|---|---|
 | Docker Compose | `docker compose up -d --build` finalizo correctamente | Aprobado |
 | Servicios | PostgreSQL, backend, frontend, Asterisk, coturn, midPoint, Nginx y SonarQube activos | Aprobado |
-| Backend | pytest: 9/9; cobertura 82.21%; API, RBAC, sesiones, evaluaciones y aprovisionamiento | Aprobado |
-| Frontend | ESLint/build; Vitest 24/24; cobertura de lineas 96.02% | Aprobado |
+| Backend | pytest: 11/11; cobertura 82.16%; API, RBAC, PDF, eventos y aprovisionamiento | Aprobado |
+| Frontend | ESLint/build; Vitest 30/30; lineas 95.05%; ramas 80.41% | Aprobado |
 | SIP tradicional | 1001-1002: Digest, INVITE/ACK/BYE, RTP PCMU bidireccional, CDR 55 | Aprobado |
-| WebRTC | Playwright: registro WSS, voz y video entre 2001/2002 | Aprobado |
-| Telefonia avanzada | Hold/resume, DTMF INFO y ConfBridge 700 en Playwright real | Aprobado |
+| WebRTC | Playwright: WSS, voz, video 2001/2002 y dos agentes en SFU 702 | Aprobado |
+| Telefonia avanzada | Hold/resume, DTMF INFO, ConfBridge 700 y videoconferencia 702 | Aprobado |
+| Tiempo real | AMI interno conectado y WebSocket autenticado por Nginx con HTTP 101 | Aprobado |
+| Reporte PDF | PDF HTTPS renderizado, métricas legibles y exportación auditada | Aprobado |
 | CDR | Dos registros finales `ANSWERED`, `media=secure` | Aprobado |
 | Grabaciones | WAV MixMonitor persistido y descarga FastAPI con RBAC | Aprobado |
 | Calidad de llamada | Jitter, RTT, perdida y MOS 4.49/4.50 persistidos | Aprobado |
@@ -25,7 +27,7 @@ fisicos en la red objetivo.
 | Auditoria | Login, lectura SIP/CDR, inicio/fin y provisionamiento persistidos | Aprobado |
 | Carga | k6: 300/300, 0% error, p95 2.34 ms | Aprobado |
 | Trivy | 0 vulnerabilidades, 0 secretos, 0 misconfiguraciones | Aprobado |
-| SonarQube | Gate OK; cobertura 86.2%; 0 bugs, 0 vulnerabilidades, 5 code smells y 0 hotspots | Aprobado |
+| SonarQube | Gate OK; cobertura 85.3%; 0 bugs, 0 vulnerabilidades, 9 code smells y 0 hotspots | Aprobado |
 | npm audit | 0 vulnerabilidades | Aprobado |
 
 ## Observaciones
@@ -37,7 +39,7 @@ fisicos en la red objetivo.
   proyecto que se ejecuta en paralelo.
 - La grabacion se limita al laboratorio; produccion requiere cifrado en reposo,
   consentimiento y politica formal de retencion/borrado.
-- El gate reproducible exige cobertura global >=80%. Los cinco code smells de
+- El gate reproducible exige cobertura global >=80%. Los nueve code smells de
   mantenibilidad quedan documentados como deuda tecnica no bloqueante.
 
 ## Criterio de liberacion

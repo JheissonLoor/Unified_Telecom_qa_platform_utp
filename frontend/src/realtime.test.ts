@@ -29,11 +29,13 @@ describe("RealtimeClient", () => {
     const onStatus = vi.fn();
     const client = new RealtimeClient("jwt", onEvent, onStatus);
     client.connect();
+    client.connect();
     const socket = FakeWebSocket.instances[0];
     socket.onopen?.();
     expect(JSON.parse(socket.sent[0])).toEqual({ token: "jwt" });
     socket.onmessage?.({ data: JSON.stringify({ type: "ready", data: {} }) } as MessageEvent);
     socket.onmessage?.({ data: JSON.stringify({ type: "call.ended", data: { destination: "2002" } }) } as MessageEvent);
+    socket.onmessage?.({ data: JSON.stringify({ type: "heartbeat", data: {} }) } as MessageEvent);
     socket.onmessage?.({ data: "invalid" } as MessageEvent);
     expect(onStatus).toHaveBeenCalledWith(true);
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "call.ended" }));
@@ -49,5 +51,20 @@ describe("RealtimeClient", () => {
     vi.advanceTimersByTime(1000);
     expect(FakeWebSocket.instances).toHaveLength(2);
     client.disconnect();
+  });
+
+  it("no abre sockets sin token y cancela una reconexion pendiente", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    new RealtimeClient("", vi.fn(), vi.fn()).connect();
+    expect(FakeWebSocket.instances).toHaveLength(0);
+
+    const client = new RealtimeClient("jwt", vi.fn(), vi.fn());
+    client.connect();
+    const socket = FakeWebSocket.instances[0];
+    socket.onerror?.();
+    client.disconnect();
+    vi.advanceTimersByTime(2000);
+    expect(FakeWebSocket.instances).toHaveLength(1);
   });
 });

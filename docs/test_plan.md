@@ -12,7 +12,9 @@ aisladas hasta una llamada WebRTC integrada.
 | Integracion | pytest/httpx | OpenAPI, BD, CDR y auditoria | Sin fallos altos |
 | E2E | Playwright | Login, rol, historial y UI | Chrome escritorio/movil aprobados |
 | SIP | SIPp/softphones | OPTIONS, registro y llamada 1001-1002 | Respuesta y audio correctos |
-| WebRTC | SIP.js/navegadores | Registro, voz, video y colgado | Dos agentes completan el flujo |
+| WebRTC | SIP.js/navegadores | Registro, voz, video, sala 702 y colgado | Dos agentes completan el flujo |
+| Tiempo real | AMI/WebSocket | Eventos PBX y autenticacion JWT | HTTP 101 y refresco sin recarga |
+| Reporte | pytest y revision visual | Resumen de supervisor | PDF valido, legible y auditado |
 | Carga | k6/SIPp | API y senalizacion | p95 API menor a 500 ms |
 | Seguridad | Trivy y pruebas RBAC | Repo, imagenes y endpoints | Sin criticos no aceptados |
 

@@ -18,6 +18,9 @@ reservan desde ahora para evitar pruebas desconectadas de los requisitos.
 | RF-QA-001 | HU-08, HU-11 | 10 | CP-QA-001..003 | Reportes de herramientas | CMMI PPQA/VER |
 | RF-CTL-001 | HU-03 | 6 | CP-CTL-001..003 | Playwright y auditoria correlacionada | Adecuacion funcional |
 | RF-CON-001 | HU-03 | 6 | CP-CON-001 | Canal ConfBridge 700 | Compatibilidad, fiabilidad |
+| RF-CON-002 | HU-13 | 7 | CP-CON-002 | Dos navegadores en ConfBridge SFU 702 | Compatibilidad, eficiencia |
+| RF-EVT-001 | HU-06, HU-14 | 9 | CP-EVT-001 | AMI interno y WebSocket HTTP 101 | Fiabilidad, A.8.16 |
+| RF-PDF-001 | HU-05, HU-14 | 10 | CP-PDF-001 | PDF renderizado y auditoria | Usabilidad, trazabilidad |
 | RF-REC-001 | HU-05 | 4/9 | CP-REC-001 | WAV y respuesta autorizada | A.5.15, A.8.15 |
 | RF-EXT-001 | HU-10 | 8 | CP-EXT-001..005 | Alta/baja y denegacion | A.5.18, integridad |
 

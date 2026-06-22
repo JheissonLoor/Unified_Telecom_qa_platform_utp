@@ -128,7 +128,10 @@ export function Dashboard({ user, onLogout }: Props) {
     Promise.all([
       api.callPage({ limit: 5, offset: 0 }).then(setCallsPage),
       api.services().then(setServices),
-      api.currentPresence().then((value) => setDoNotDisturb(value.do_not_disturb)),
+      api.currentPresence().then((value) => {
+        setDoNotDisturb(value.do_not_disturb);
+        sip.current?.setDoNotDisturb(value.do_not_disturb);
+      }),
       api.qualitySummary().then(setQualitySummary),
     ]).catch(() => setMessage("Algunos datos operativos no estan disponibles"));
     let realtimeRefresh: number | null = null;

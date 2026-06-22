@@ -1,13 +1,15 @@
 # Checklist de evidencias
 
-- [x] Version 1.0.0 y ambiente Windows/Docker identificados.
+- [x] Version 1.2.0 y ambiente Windows/Docker identificados.
 - [x] `docker compose config --quiet` y arranque con `--build` aprobados.
 - [x] Servicios principales saludables; SonarQube activo en perfil QA.
 - [x] Endpoints PJSIP 1001, 1002, 2001, 2002 y 2003 cargados.
 - [x] Llamada SIP 1001-1002 con Digest, RTP PCMU bidireccional y CDR `ANSWERED`.
 - [x] Login y RBAC de agente, Supervisor y AdministradorQA.
 - [x] Registro WSS y llamada de voz WebRTC automatizada.
-- [x] Videollamada automatizada con pistas locales en ambos navegadores.
+- [x] Videollamada directa y videoconferencia 702 con video remoto en ambos navegadores.
+- [x] AMI interno y WebSocket autenticado a traves de Nginx con HTTP 101.
+- [x] PDF operativo generado, renderizado y auditado.
 - [x] Usuario midPoint sincronizado a extension 2003.
 - [x] Eventos de login, reporte, llamada y provisionamiento auditados.
 - [x] HTTPS/WSS, DTLS-SRTP, ICE y `media=secure` demostrados.
@@ -17,4 +19,4 @@
 - [x] Quality Gate SonarQube aprobado y cuenta admin endurecida.
 - [x] Capturas y reportes sin credenciales reales.
 - [ ] Compatibilidad adicional con dos softphones fisicos; no hay hardware disponible en el laboratorio automatizado.
-- [ ] Commit final; el repositorio aun no tiene un commit solicitado.
+- [x] Historial organizado en commits funcionales en español.

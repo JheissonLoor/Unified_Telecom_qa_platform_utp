@@ -246,6 +246,7 @@ describe("Dashboard", () => {
     mocks.currentPresence.mockResolvedValueOnce({ do_not_disturb: true, updated_at: "2026-06-21T10:00:00Z" });
     render(<Dashboard user={agent} onLogout={vi.fn()} />);
     expect(await screen.findByDisplayValue("No molestar")).toBeVisible();
+    expect(mocks.setDoNotDisturb).toHaveBeenCalledWith(true);
     mocks.state.callbacks?.onRegistration("registered");
 
     fireEvent.change(screen.getByLabelText("Linea de salida"), { target: { value: "ivr" } });

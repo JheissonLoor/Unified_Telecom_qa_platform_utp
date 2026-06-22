@@ -4,6 +4,7 @@ const agent1Password = process.env.E2E_AGENT1_PASSWORD;
 const agent2Password = process.env.E2E_AGENT2_PASSWORD;
 
 test("dos agentes registran WSS y completan llamadas WebRTC de voz y video", async ({ browser }) => {
+  test.setTimeout(120_000);
   test.skip(!agent1Password || !agent2Password, "Requires generated demo passwords");
 
   const firstContext = await browser.newContext({
@@ -42,7 +43,7 @@ test("dos agentes registran WSS y completan llamadas WebRTC de voz y video", asy
   await first.getByRole("button", { name: /Reanudar/ }).click();
   await expect(first.getByText("Llamada reanudada")).toBeVisible();
   await first.getByRole("button", { name: /Teclado/ }).click();
-  await first.getByRole("button", { name: "5" }).click();
+  await first.getByRole("button", { name: "5", exact: true }).click();
   await expect(first.getByText("DTMF 5 enviado")).toBeVisible();
   await first.getByRole("button", { name: "Finalizar" }).click();
   await expect(first.getByText("Llamada finalizada")).toBeVisible();
@@ -64,6 +65,22 @@ test("dos agentes registran WSS y completan llamadas WebRTC de voz y video", asy
   await first.getByRole("button", { name: "Finalizar" }).click();
   await expect(first.getByText("Llamada finalizada")).toBeVisible();
   await expect(second.getByText("IDLE", { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  for (const page of [first, second]) {
+    await page.getByLabel("Linea de salida").selectOption("conference-video");
+    await page.getByRole("button", { name: "Llamada de Video" }).click();
+    await expect(page.getByText("Established", { exact: true })).toBeVisible({ timeout: 20_000 });
+  }
+  for (const page of [first, second]) {
+    await expect.poll(async () => page.locator("video").nth(1).evaluate((video) => {
+      const stream = video.srcObject as MediaStream | null;
+      return stream?.getVideoTracks().length ?? 0;
+    }), { timeout: 20_000 }).toBeGreaterThan(0);
+  }
+  await first.getByRole("button", { name: "Finalizar" }).click();
+  await second.getByRole("button", { name: "Finalizar" }).click();
+  await expect(first.getByText("Llamada finalizada")).toBeVisible();
+  await expect(second.getByText("Llamada finalizada")).toBeVisible();
 
   await first.getByRole("button", { name: /Conferencia/ }).click();
   await expect(first.getByText("Established", { exact: true })).toBeVisible({ timeout: 20_000 });

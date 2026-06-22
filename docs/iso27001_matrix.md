@@ -9,7 +9,7 @@
 | A.8.5 Autenticacion segura | Argon2, JWT HS256 corto | Pruebas unitarias/login |
 | A.8.8 Vulnerabilidades | npm audit y Trivy | Reportes fechados |
 | A.8.15 Logging | Eventos estructurados sin credenciales | Revision de auditoria |
-| A.8.16 Monitoreo | Health checks y eventos correlacionados | Compose/API |
+| A.8.16 Monitoreo | Health checks, AMI interno y eventos WebSocket correlacionados | Compose/API/HTTP 101 |
 | A.8.20 Redes | Cuatro redes y BD interna | `docker network inspect` |
 | A.8.24 Criptografia | TLS 1.2/1.3 y DTLS-SRTP | Navegador, SDP y certificados |
 | A.8.25 SDLC seguro | Fases, gates y trazabilidad | Git, plan y actas |

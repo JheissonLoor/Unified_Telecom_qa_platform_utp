@@ -15,12 +15,15 @@
 | CP-CTL-002 | Enviar DTMF 5 | SIP INFO aceptado por Asterisk |
 | CP-CTL-003 | Transferir llamada | REFER valido y auditoria con destino |
 | CP-CON-001 | Marcar 700 | Agente entra a sala ConfBridge |
+| CP-CON-002 | Dos agentes marcan 702 con video | Ambos reciben al menos un flujo de video remoto por SFU |
 | CP-DND-001 | Activar No Molestar | INVITE entrante recibe 486 y queda auditado |
 | CP-CDR-001 | Finalizar llamada | Fila unica con origen, destino y duracion |
 | CP-REC-001 | Finalizar llamada contestada | WAV existe y solo usuario autorizado lo descarga |
 | CP-QA-001 | Reportar estadisticas WebRTC | MOS entre 1.0 y 4.5 persistido por session ID |
 | CP-QA-002 | Supervisor evalua CDR | Puntaje 1-100 y observacion persistidos |
 | CP-REP-001 | Filtrar historial | Total, offset y filas coinciden con criterios |
+| CP-EVT-001 | Conectar WebSocket autenticado | HTTP 101 y eventos de Asterisk sin exponer token en URL |
+| CP-PDF-001 | Exportar reporte de supervisor | MIME PDF, cabecera `%PDF`, contenido legible y evento de auditoria |
 | CP-AUD-001 | Iniciar/finalizar llamada web | Eventos correlacionados por session ID |
 | CP-IAM-001 | Sincronizar usuario agente3 | Usuario, rol, extension 2003 y endpoint PJSIP |
 | CP-SEG-001 | Buscar secretos en repo/logs | Ninguna credencial o clave privada |

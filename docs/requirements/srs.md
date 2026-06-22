@@ -17,9 +17,13 @@ auditoria. Los actores tecnicos son midPoint, Asterisk y los procesos de QA.
 | RF-SIP-002 | Registrar WebRTC | Un agente se registra por WSS sin contenido mixto en navegador | Alta |
 | RF-VOZ-001 | Realizar llamada WebRTC | Dos extensiones establecen audio bidireccional y finalizan limpiamente | Alta |
 | RF-VID-001 | Realizar videollamada | Dos clientes compatibles negocian video VP8 y audio | Media |
+| RF-CON-001 | Realizar conferencia de voz | Un agente entra a la sala 700 y conserva audio bidireccional | Media |
+| RF-CON-002 | Realizar videoconferencia | Dos o mas agentes entran a 702 y reciben video remoto compatible | Media |
 | RF-CDR-001 | Persistir CDR | Cada llamada terminada produce un registro consultable en PostgreSQL | Alta |
 | RF-AUD-001 | Registrar auditoria | Login, asignacion, llamada y consulta de reporte dejan evento correlacionado | Alta |
 | RF-REP-001 | Consultar reportes | Supervisor/QA filtra CDR por fecha, agente, estado y duracion | Media |
+| RF-EVT-001 | Actualizar panel en vivo | Eventos AMI actualizan llamadas y calidad sin recarga manual | Media |
+| RF-PDF-001 | Exportar reporte | Supervisor/QA descarga un PDF valido y la accion queda auditada | Media |
 | RF-QA-001 | Consultar metricas QA | Administrador QA ve resultados de pruebas, vulnerabilidades y calidad | Media |
 | RF-EXT-001 | Administrar extensiones | Solo AdministradorQA crea, bloquea o reasigna extensiones | Media |
 
@@ -55,5 +59,5 @@ auditoria. Los actores tecnicos son midPoint, Asterisk y los procesos de QA.
 
 - Alta disponibilidad, multi-region y SLA de produccion.
 - Telefonia con PSTN real, numeros publicos o grabaciones con datos personales.
-- Conferencia de video multipunto o transcodificacion de video.
+- Transcodificacion de video entre codecs incompatibles.
 - Certificacion formal ISO o evaluacion oficial CMMI.

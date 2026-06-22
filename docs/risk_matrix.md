@@ -14,6 +14,7 @@
 | R-10 | Certificado local no confiable | 5 | 2 | Medio | CA local exportada y validacion de hostname |
 | R-11 | Regresion de cobertura automatizada | 2 | 4 | Alto | LCOV/Cobertura, Sonar y umbral obligatorio de 80% |
 | R-12 | Registro de dependencias temporalmente no disponible | 2 | 3 | Medio | Reintento de npm audit y Trivy compensatorio |
+| R-13 | Saturacion de videoconferencia | 3 | 4 | Alto | SFU sin transcodificacion, maximo 10 y REMB `lowest_all` |
 
 Escala: probabilidad e impacto de 1 a 5. La aceptacion final requiere responsable,
 fecha y riesgo residual para todo riesgo alto o critico no mitigado.

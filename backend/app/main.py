@@ -64,7 +64,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Unified Telecom QA API",
-    version="1.1.0",
+    version="1.2.0",
     description="Usuarios, RBAC, CDR, auditoria, metricas y aprovisionamiento.",
     lifespan=lifespan,
 )

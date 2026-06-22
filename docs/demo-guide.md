@@ -6,9 +6,10 @@
 4. Entrar como agente1 y agente2 en navegadores separados.
 5. Conectar SIP y demostrar llamada entrante con aceptar/rechazar y No Molestar.
 6. Llamar 2001-2002 y probar mute, retencion/reanudacion, DTMF y transferencia.
-7. Entrar a la conferencia 700 y completar una videollamada.
+7. Entrar con ambos agentes a la videoconferencia 702 y mostrar video remoto;
+   despues demostrar la conferencia de voz 700.
 8. Mostrar CDR filtrado, WAV reproducible, MOS y auditoria correlacionada.
-9. Entrar como supervisor para monitoreo, evaluaciones y reportes; como admin QA
+9. Entrar como supervisor para monitoreo, evaluaciones y exportacion PDF; como admin QA
    mostrar auditoria y gestion de usuarios.
 10. Importar roles/usuario sintetico en midPoint y sincronizar 2003.
 11. Probar que un agente recibe 403 al acceder a endpoints QA/auditoria.

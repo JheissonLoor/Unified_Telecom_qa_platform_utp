@@ -24,6 +24,7 @@ flowchart LR
 
     Browser -->|HTTPS REST| Proxy
     Browser -->|WSS SIP| Proxy
+    Browser <-->|WSS eventos| Proxy
     Browser <-->|SRTP/DTLS e ICE| PBX
     Browser <-->|TURN sobre TLS/UDP| TURN
     Softphone -->|SIP UDP 5060 o TLS 5061| PBX
@@ -32,6 +33,7 @@ flowchart LR
     API -->|SQL parametrizado| DB
     PBX -->|CDR ODBC| DB
     API -->|Health HTTP interno| PBX
+    API <-->|AMI 5038 interno| PBX
     IAM -->|Provisionamiento REST| API
     Admin -->|HTTPS| IAM
 ```
@@ -41,7 +43,7 @@ flowchart LR
 | Componente | Responsabilidad | No responsabilidad |
 |---|---|---|
 | React/SIP.js | UX, registro, llamada, hold, REFER, DTMF y estadisticas RTC | Autorizar por si solo |
-| FastAPI | Autenticacion, RBAC, auditoria, reportes, MOS y acceso a grabaciones | Transportar RTP |
+| FastAPI | Autenticacion, RBAC, auditoria, PDF, MOS, eventos AMI y grabaciones | Transportar RTP |
 | Asterisk | PJSIP, dialplan, ConfBridge, MixMonitor, medios y CDR | Gobierno de identidades |
 | midPoint | Ciclo de vida, roles y aprovisionamiento | Ser IdP OIDC del navegador |
 | PostgreSQL | Persistencia transaccional, auditoria y CDR | Almacenar secretos en claro |
@@ -95,8 +97,8 @@ imagen ni por Git.
   disponibilidad real.
 - PostgreSQL puede compartir instancia en desarrollo, con bases y usuarios
   separados para aplicacion y midPoint.
-- Asterisk permite video compatible extremo a extremo, pero no reemplaza una
-  SFU para conferencias multipunto.
+- Asterisk ConfBridge opera como SFU de laboratorio para la sala 702, con
+  codecs homogeneos, hasta 10 participantes y sin transcodificacion.
 - H.264 queda condicionado al soporte de navegador, endpoint, perfil y licencia;
   VP8 sera la primera opcion de interoperabilidad para video WebRTC.
 - ISO 27001 se usa como marco de controles; este proyecto no afirma certificacion.
