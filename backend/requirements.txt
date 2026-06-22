@@ -7,7 +7,7 @@ PyJWT==2.13.0
 pwdlib[argon2]==0.2.1
 cryptography==48.0.1
 httpx==0.28.1
-pytest==8.4.0
+pytest==9.1.1
 pytest-asyncio==1.0.0
 pytest-cov==6.2.1
 reportlab==5.0.0
