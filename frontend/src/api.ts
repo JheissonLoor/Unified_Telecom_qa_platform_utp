@@ -1,6 +1,6 @@
 import type {
   ActiveCall, AdminUser, AuditRecord, AuthResponse, CallPage, CallRecord, Evaluation,
-  ReportSummary, ServiceStatus, SipConfig,
+  Presence, QualitySummary, ReportSummary, ServiceStatus, SipConfig,
 } from "./types";
 
 const TOKEN_KEY = "telecom-qa-token";
@@ -49,6 +49,7 @@ export const api = {
   },
   audit: () => request<AuditRecord[]>("/api/audit?limit=100"),
   quality: () => request<Record<string, number | string>>("/api/metrics/quality"),
+  qualitySummary: () => request<QualitySummary>("/api/metrics/quality-summary"),
   services: () => request<ServiceStatus>("/api/services/status"),
   activeCalls: () => request<ActiveCall[]>("/api/monitoring/active-calls"),
   evaluations: () => request<Evaluation[]>("/api/evaluations"),
@@ -62,7 +63,8 @@ export const api = {
     method: "PATCH",
     body: JSON.stringify({ active }),
   }),
-  presence: (doNotDisturb: boolean) => request<{ accepted: boolean; do_not_disturb: boolean }>("/api/presence", {
+  currentPresence: () => request<Presence>("/api/presence"),
+  presence: (doNotDisturb: boolean) => request<Presence>("/api/presence", {
     method: "POST",
     body: JSON.stringify({ do_not_disturb: doNotDisturb }),
   }),

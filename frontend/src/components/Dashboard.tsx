@@ -1,9 +1,9 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import {
-  Activity, AudioLines, Ban, BarChart3, CalendarDays, Camera, CheckCircle2,
+  Activity, AlertTriangle, AudioLines, Ban, BarChart3, BookOpen, CalendarDays, Camera, CheckCircle2,
   ChevronLeft, ChevronRight, CircleHelp, ClipboardCheck, Download,
   History, Home, KeyRound, ListFilter, LockKeyhole, LogOut, Menu,
-  Mic, MonitorUp, Pause, Phone, PhoneCall, PhoneForwarded, PhoneIncoming,
+  Mic, MonitorUp, MoreVertical, Pause, Phone, PhoneCall, PhoneForwarded, PhoneIncoming,
   PhoneOff, PhoneOutgoing, PlayCircle, RefreshCw, Search, ShieldCheck,
   Speaker, Star, Users, UserRound, Video, X,
 } from "lucide-react";
@@ -14,11 +14,12 @@ import {
 } from "../sip";
 import type {
   ActiveCall, AdminUser, AuditRecord, CallPage, CallRecord, Evaluation,
-  ReportSummary, ServiceStatus, User,
+  QualitySummary, ReportSummary, ServiceStatus, User,
 } from "../types";
 
 interface Props { user: User; onLogout: () => void; }
-type View = "home" | "calls" | "history" | "quality" | "audit" | "monitoring" | "evaluations" | "reports" | "users";
+type View = "home" | "calls" | "history" | "quality" | "audit" | "monitoring" | "evaluations" | "reports" | "users" | "help";
+type OutboundLine = "sip" | "conference-audio" | "ivr" | "conference-video";
 
 const EMPTY_PAGE: CallPage = { items: [], total: 0, limit: 5, offset: 0 };
 const EMPTY_SERVICES: ServiceStatus = {
@@ -35,6 +36,18 @@ function callType(call: CallRecord) {
   return "Interna";
 }
 
+const DISPOSITION_LABELS: Record<string, string> = {
+  ANSWERED: "Completada",
+  "NO ANSWER": "Sin respuesta",
+  FAILED: "Fallida",
+  BUSY: "Ocupada",
+};
+
+function dispositionLabel(value: string | null) {
+  if (!value) return "Desconocida";
+  return DISPOSITION_LABELS[value] ?? value;
+}
+
 export function Dashboard({ user, onLogout }: Props) {
   const [view, setView] = useState<View>("home");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -46,6 +59,7 @@ export function Dashboard({ user, onLogout }: Props) {
   const [callsPage, setCallsPage] = useState<CallPage>(EMPTY_PAGE);
   const [audits, setAudits] = useState<AuditRecord[]>([]);
   const [quality, setQuality] = useState<Record<string, number | string | null>>({});
+  const [qualitySummary, setQualitySummary] = useState<QualitySummary>({ average_mos: null, measured_calls: 0, quality_gate: "NO_DATA" });
   const [services, setServices] = useState<ServiceStatus>(EMPTY_SERVICES);
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -58,6 +72,7 @@ export function Dashboard({ user, onLogout }: Props) {
   const [speakerEnabled, setSpeakerEnabled] = useState(true);
   const [held, setHeld] = useState(false);
   const [doNotDisturb, setDoNotDisturb] = useState(false);
+  const [outboundLine, setOutboundLine] = useState<OutboundLine>("sip");
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState("");
   const [dialpadOpen, setDialpadOpen] = useState(false);
@@ -110,6 +125,8 @@ export function Dashboard({ user, onLogout }: Props) {
     Promise.all([
       api.callPage({ limit: 5, offset: 0 }).then(setCallsPage),
       api.services().then(setServices),
+      api.currentPresence().then((value) => setDoNotDisturb(value.do_not_disturb)),
+      api.qualitySummary().then(setQualitySummary),
     ]).catch(() => setMessage("Algunos datos operativos no estan disponibles"));
     const serviceTimer = window.setInterval(() => void refreshServices(), 30000);
     return () => {
@@ -136,6 +153,16 @@ export function Dashboard({ user, onLogout }: Props) {
       if (call) await api.callEvent("started", target, kind, call.id);
       setMessage(`Llamando a ${target}`);
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo llamar"); }
+  }
+
+  async function startSelectedCall(withVideo: boolean) {
+    const selected = {
+      sip: { target: destination, video: withVideo },
+      "conference-audio": { target: "700", video: false },
+      ivr: { target: "701", video: false },
+      "conference-video": { target: "702", video: true },
+    }[outboundLine];
+    await startCall(selected.video, selected.target);
   }
 
   async function acceptIncoming() {
@@ -229,14 +256,17 @@ export function Dashboard({ user, onLogout }: Props) {
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo abrir la conferencia"); }
   }
 
-  async function toggleDnd() {
-    const next = !doNotDisturb;
+  async function changePresence(next: boolean) {
     sip.current?.setDoNotDisturb(next);
     try {
       await api.presence(next);
       setDoNotDisturb(next);
       setMessage(next ? "No Molestar activado" : "Disponible para llamadas");
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo cambiar presencia"); }
+  }
+
+  async function toggleDnd() {
+    await changePresence(!doNotDisturb);
   }
 
   async function playRecording(call: CallRecord) {
@@ -287,7 +317,8 @@ export function Dashboard({ user, onLogout }: Props) {
     ["reports", "Reportes", BarChart3, canSupervise],
     ["users", "Gestion de usuarios", Users, canAdminister],
   ] as const;
-  const qualityGlobal = typeof quality.average_mos === "number" ? quality.average_mos >= 3.6 : services.network === "ok";
+  const qualityGlobal = qualitySummary.quality_gate === "OPTIMAL";
+  const qualityLabel = qualitySummary.quality_gate === "NO_DATA" ? "SIN DATOS" : qualityGlobal ? "OPTIMA" : "REVISAR";
 
   return (
     <div className={`app-shell ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
@@ -296,7 +327,7 @@ export function Dashboard({ user, onLogout }: Props) {
         <div className="product"><AudioLines /><strong>Unified Telecom QA</strong></div>
         <div className="role-label">{user.role === "AgenteCallCenter" ? "Agente Call Center" : user.role}</div>
         <ServiceStrip values={services} />
-        <div className="global-quality"><span>Calidad Global</span><strong className={qualityGlobal ? "good" : "warn"}>{qualityGlobal ? "OPTIMA" : "REVISAR"}</strong></div>
+        <div className="global-quality" title={qualitySummary.average_mos === null ? "Aun no hay llamadas medidas" : `MOS promedio ${qualitySummary.average_mos}`}><span>Calidad Global</span><strong className={qualityGlobal ? "good" : "warn"}>{qualityLabel}</strong></div>
         <div className="identity"><UserRound /><div><strong>{user.display_name}</strong><small>{user.role}</small><span><i /> En linea</span></div><button onClick={onLogout} aria-label="Cerrar sesion"><LogOut size={18} /></button></div>
       </header>
 
@@ -306,7 +337,7 @@ export function Dashboard({ user, onLogout }: Props) {
           return <button key={id} className={view === id ? "active" : ""} disabled={locked} onClick={() => void openView(id)}><Icon /> <span>{label}</span>{locked ? <LockKeyhole className="nav-lock" /> : null}</button>;
         })}</nav>
         <div className="governance-nav"><small>Vistas supervisor / QA</small>{governanceNav.map(([id, label, Icon, allowed]) => <button key={id} className={view === id ? "active" : ""} disabled={!allowed} onClick={() => void openView(id)}><Icon /><span>{label}</span>{!allowed ? <LockKeyhole className="nav-lock" /> : null}</button>)}</div>
-        <button className="help-link" onClick={() => setMessage("Consulta docs/demo-guide.md para la demostracion guiada")}><CircleHelp /><span>Ayuda</span></button>
+        <button className={`help-link ${view === "help" ? "active" : ""}`} onClick={() => setView("help")}><CircleHelp /><span>Ayuda</span></button>
       </aside>
 
       <main className="workspace">
@@ -315,7 +346,7 @@ export function Dashboard({ user, onLogout }: Props) {
             <div className="operation-main">
               <section className="station-bar">
                 <div><small>Estacion</small><strong>{user.extension ? `AGT${user.extension}` : "Sin extension"}</strong></div>
-                <span className={`availability ${registration === "registered" && !doNotDisturb ? "available" : "unavailable"}`}><i />{doNotDisturb ? "No molestar" : registration === "registered" ? "Disponible" : registration}</span>
+                <label className="presence-select"><span className={`availability ${registration === "registered" && !doNotDisturb ? "available" : "unavailable"}`}><i />Estado</span><select aria-label="Estado del agente" value={doNotDisturb ? "dnd" : "available"} onChange={(event) => void changePresence(event.target.value === "dnd")}><option value="available">Disponible</option><option value="dnd">No molestar</option></select></label>
                 {user.extension && registration !== "registered" ? <button className="connect-sip" onClick={() => void connectSip()} disabled={registration === "connecting"}>{registration === "connecting" ? "Conectando..." : "Conectar SIP"}</button> : null}
                 <button className={`dnd ${doNotDisturb ? "active" : ""}`} onClick={() => void toggleDnd()}><Ban />{doNotDisturb ? "Activar llamadas" : "No Molestar"}</button>
               </section>
@@ -323,8 +354,8 @@ export function Dashboard({ user, onLogout }: Props) {
                 <div className="dialer">
                   <h2>Marcar / Destino</h2>
                   <label className="destination-field"><span className="sr-only">Extension o destino</span><input aria-label="Extension" placeholder="Extension o numero de destino" value={destination} onChange={(event) => setDestination(event.target.value)} /><KeyRound /></label>
-                  <label className="line-select">Linea de salida<select aria-label="Linea de salida"><option>Linea 1 (SIP)</option><option>Conferencia 700</option><option>IVR 701</option></select></label>
-                  <div className="call-actions"><button className="primary-call" onClick={() => void startCall(false)} disabled={registration !== "registered" || !!activeSession}><Phone />Llamada de Voz</button><button onClick={() => void startCall(true)} disabled={registration !== "registered" || !!activeSession}><Video />Llamada de Video</button></div>
+                  <label className="line-select">Linea de salida<select aria-label="Linea de salida" value={outboundLine} onChange={(event) => setOutboundLine(event.target.value as OutboundLine)}><option value="sip">Linea 1 (SIP)</option><option value="conference-audio">Conferencia de audio 700</option><option value="ivr">IVR de pruebas 701</option><option value="conference-video">Videoconferencia 702</option></select></label>
+                  <div className="call-actions"><button className="primary-call" onClick={() => void startSelectedCall(false)} disabled={registration !== "registered" || !!activeSession || outboundLine === "conference-video"}><Phone />Llamada de Voz</button><button onClick={() => void startSelectedCall(true)} disabled={registration !== "registered" || !!activeSession || (outboundLine !== "sip" && outboundLine !== "conference-video")}><Video />Llamada de Video</button></div>
                   <p className="call-message">{message}</p>
                 </div>
                 <div className="call-state"><h3>Estado de Llamada</h3><strong>{held ? "ON HOLD" : callState}</strong><span>{activeSession ? `Con ${destination}` : "Sin llamada activa"}</span><hr /><small>Ultimo estado:</small><b>{registration === "registered" ? "Disponible" : registration}</b></div>
@@ -354,6 +385,7 @@ export function Dashboard({ user, onLogout }: Props) {
         {view === "evaluations" ? <EvaluationsPanel values={evaluations} calls={calls} onSubmit={submitEvaluation} /> : null}
         {view === "reports" ? <ReportsPanel value={report} /> : null}
         {view === "users" ? <UsersPanel values={users} onToggle={updateUserStatus} /> : null}
+        {view === "help" ? <HelpPanel /> : null}
       </main>
 
       {incoming ? <IncomingModal call={incoming} onAccept={() => void acceptIncoming()} onReject={() => void rejectIncoming()} /> : null}
@@ -381,7 +413,11 @@ function Dialpad({ onTone }: { onTone: (tone: string) => void }) {
 }
 
 function ActivityRail({ calls, onRefresh }: { calls: CallRecord[]; onRefresh: () => void }) {
-  return <aside className="activity-rail"><header><h2>Actividad Reciente</h2><button onClick={onRefresh}>Ver todo</button></header>{calls.length ? calls.slice(0, 5).map((call) => <div className="activity-item" key={call.id}><span className={`activity-icon ${call.direction}`}>{call.direction === "incoming" ? <PhoneIncoming /> : <PhoneOutgoing />}</span><div><strong>Llamada {callType(call)}</strong><small>{call.direction === "incoming" ? call.src : call.dst}</small><small>{duration(call.billsec)}</small></div><time>{new Date(call.calldate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div>) : <p className="activity-empty">No hay actividad reciente.</p>}<button className="activity-refresh" onClick={onRefresh}><RefreshCw />Actualizar</button></aside>;
+  const items = calls.flatMap((call) => [
+    { kind: "call" as const, call },
+    ...(call.mos !== null && call.mos < 3.6 ? [{ kind: "quality" as const, call }] : []),
+  ]).slice(0, 5);
+  return <aside className="activity-rail"><header><h2>Actividad Reciente</h2><button onClick={onRefresh}>Ver todo</button></header>{items.length ? items.map(({ kind, call }) => kind === "quality" ? <div className="activity-item quality-warning" key={`quality-${call.id}`}><span className="activity-icon quality"><AlertTriangle /></span><div><strong>Calidad de llamada</strong><small>{call.src} a {call.dst}</small><small>MOS {call.mos?.toFixed(1)} · requiere revision</small></div><time>{new Date(call.calldate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div> : <div className="activity-item" key={`call-${call.id}`}><span className={`activity-icon ${call.direction}`}>{call.direction === "incoming" ? <PhoneIncoming /> : <PhoneOutgoing />}</span><div><strong>Llamada {callType(call)}</strong><small>{call.direction === "incoming" ? call.src : call.dst}</small><small>{duration(call.billsec)}</small></div><time>{new Date(call.calldate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div>) : <p className="activity-empty">No hay actividad reciente.</p>}<button className="activity-refresh" onClick={onRefresh}><RefreshCw />Actualizar</button></aside>;
 }
 
 function CallsTable({ page, filters, setFilters, onSearch, onPage, onRecording }: {
@@ -389,9 +425,21 @@ function CallsTable({ page, filters, setFilters, onSearch, onPage, onRecording }
   setFilters: React.Dispatch<React.SetStateAction<{ search: string; disposition: string; date: string }>>;
   onSearch: () => void; onPage: (offset: number) => void; onRecording: (call: CallRecord) => void;
 }) {
+  const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [details, setDetails] = useState<CallRecord | null>(null);
   const first = page.total ? page.offset + 1 : 0;
   const last = Math.min(page.offset + page.limit, page.total);
-  return <section className="table-panel calls-table"><div className="section-heading"><h2>Llamadas recientes</h2><div className="table-filters"><label><span className="sr-only">Buscar llamadas</span><input placeholder="Buscar..." value={filters.search} onChange={(event) => setFilters((value) => ({ ...value, search: event.target.value }))} /><Search /></label><select aria-label="Filtrar estado" value={filters.disposition} onChange={(event) => setFilters((value) => ({ ...value, disposition: event.target.value }))}><option value="">Todos</option><option>ANSWERED</option><option>NO ANSWER</option><option>FAILED</option><option>BUSY</option></select><label className="date-filter"><CalendarDays /><input aria-label="Filtrar fecha" type="date" value={filters.date} onChange={(event) => setFilters((value) => ({ ...value, date: event.target.value }))} /></label><button onClick={onSearch}><ListFilter />Filtrar</button></div></div><div className="table-scroll"><table><thead><tr><th>Fecha y Hora</th><th>Destino</th><th>Tipo</th><th>Duracion</th><th>Estado</th><th>Calidad</th><th>Grabacion</th></tr></thead><tbody>{page.items.length ? page.items.map((call) => <tr key={call.id}><td>{new Date(call.calldate).toLocaleString()}</td><td>{call.direction === "incoming" ? call.src : call.dst}</td><td><span className={`call-direction ${call.direction}`}>{call.direction === "incoming" ? <PhoneIncoming /> : <PhoneOutgoing />}{callType(call)}{call.media === "video" ? " / Video" : ""}</span></td><td>{duration(call.billsec)}</td><td><span className={`disposition ${call.disposition === "ANSWERED" ? "ok" : "warn"}`}>{call.disposition === "ANSWERED" ? <CheckCircle2 /> : <Activity />}{call.disposition ?? "UNKNOWN"}</span></td><td><span className={`mos ${call.mos && call.mos >= 3.6 ? "ok" : "warn"}`}><i />{call.mos ? `MOS ${call.mos.toFixed(1)}` : "Sin metrica"}</span></td><td>{call.recording_available ? <button className="play-recording" onClick={() => onRecording(call)}><PlayCircle />Escuchar</button> : <span className="not-available">No disponible</span>}</td></tr>) : <tr><td colSpan={7} className="empty">No hay CDR para los filtros seleccionados.</td></tr>}</tbody></table></div><footer><span>Mostrando {first} a {last} de {page.total} llamadas</span><div><button disabled={page.offset === 0} onClick={() => onPage(Math.max(0, page.offset - page.limit))}><ChevronLeft /></button><strong>{Math.floor(page.offset / page.limit) + 1}</strong><button disabled={page.offset + page.limit >= page.total} onClick={() => onPage(page.offset + page.limit)}><ChevronRight /></button></div></footer></section>;
+  return <><section className="table-panel calls-table"><div className="section-heading"><h2>Llamadas recientes</h2><div className="table-filters"><label><span className="sr-only">Buscar llamadas</span><input placeholder="Buscar..." value={filters.search} onChange={(event) => setFilters((value) => ({ ...value, search: event.target.value }))} /><Search /></label><select aria-label="Filtrar estado" value={filters.disposition} onChange={(event) => setFilters((value) => ({ ...value, disposition: event.target.value }))}><option value="">Todos</option><option value="ANSWERED">Completada</option><option value="NO ANSWER">Sin respuesta</option><option value="FAILED">Fallida</option><option value="BUSY">Ocupada</option></select><label className="date-filter"><CalendarDays /><input aria-label="Filtrar fecha" type="date" value={filters.date} onChange={(event) => setFilters((value) => ({ ...value, date: event.target.value }))} /></label><button onClick={onSearch}><ListFilter />Filtrar</button></div></div><div className="table-scroll"><table><thead><tr><th>Fecha y Hora</th><th>Destino</th><th>Tipo</th><th>Duracion</th><th>Estado</th><th>Calidad</th><th>Grabacion</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{page.items.length ? page.items.map((call) => <tr key={call.id}><td>{new Date(call.calldate).toLocaleString()}</td><td>{call.direction === "incoming" ? call.src : call.dst}</td><td><span className={`call-direction ${call.direction}`}>{call.direction === "incoming" ? <PhoneIncoming /> : <PhoneOutgoing />}{callType(call)}{call.media === "video" ? " / Video" : ""}</span></td><td>{duration(call.billsec)}</td><td><span className={`disposition ${call.disposition === "ANSWERED" ? "ok" : "warn"}`}>{call.disposition === "ANSWERED" ? <CheckCircle2 /> : <Activity />}{dispositionLabel(call.disposition)}</span></td><td><span className={`mos ${call.mos && call.mos >= 3.6 ? "ok" : "warn"}`}><i />{call.mos ? `MOS ${call.mos.toFixed(1)}` : "Sin metrica"}</span></td><td>{call.recording_available ? <button className="play-recording" onClick={() => onRecording(call)}><PlayCircle />Escuchar</button> : <span className="not-available">No disponible</span>}</td><td className="row-actions"><button aria-label={`Acciones de llamada ${call.id}`} onClick={() => setOpenMenu(openMenu === call.id ? null : call.id)}><MoreVertical /></button>{openMenu === call.id ? <div role="menu"><button role="menuitem" onClick={() => { setDetails(call); setOpenMenu(null); }}>Ver detalle</button>{call.recording_available ? <button role="menuitem" onClick={() => { onRecording(call); setOpenMenu(null); }}>Escuchar grabacion</button> : null}</div> : null}</td></tr>) : <tr><td colSpan={8} className="empty">No hay CDR para los filtros seleccionados.</td></tr>}</tbody></table></div><footer><span>Mostrando {first} a {last} de {page.total} llamadas</span><div><button disabled={page.offset === 0} onClick={() => onPage(Math.max(0, page.offset - page.limit))}><ChevronLeft /></button><strong>{Math.floor(page.offset / page.limit) + 1}</strong><button disabled={page.offset + page.limit >= page.total} onClick={() => onPage(page.offset + page.limit)}><ChevronRight /></button></div></footer></section>{details ? <Modal title={`Detalle de llamada #${details.id}`} onClose={() => setDetails(null)}><dl className="call-details"><div><dt>Origen</dt><dd>{details.src ?? "-"}</dd></div><div><dt>Destino</dt><dd>{details.dst ?? "-"}</dd></div><div><dt>Tipo</dt><dd>{callType(details)} / {details.media === "video" ? "Video" : "Audio"}</dd></div><div><dt>Estado</dt><dd>{dispositionLabel(details.disposition)}</dd></div><div><dt>Duracion</dt><dd>{duration(details.billsec)}</dd></div><div><dt>Calidad</dt><dd>{details.mos ? `MOS ${details.mos.toFixed(2)}` : "Sin metrica"}</dd></div><div className="wide"><dt>Identificador CDR</dt><dd className="mono">{details.uniqueid}</dd></div></dl></Modal> : null}</>;
+}
+
+function HelpPanel() {
+  const topics = [
+    ["1. Registrar la estacion", "Pulsa Conectar SIP y permite el microfono y la camara cuando el navegador lo solicite."],
+    ["2. Hacer una llamada", "Elige Linea SIP, escribe una extension y usa Llamada de Voz o Llamada de Video."],
+    ["3. Servicios de prueba", "600 repite el audio, 700 abre conferencia de voz, 701 ejecuta el IVR y 702 abre videoconferencia."],
+    ["4. Calidad y trazabilidad", "El historial muestra CDR, MOS y grabaciones. Supervisor y QA acceden a evaluaciones y reportes."],
+  ];
+  return <section className="governance-panel help-panel"><PanelHeader title="Centro de ayuda" subtitle="Guia rapida para operar y demostrar la plataforma" icon={BookOpen} /><div className="help-grid">{topics.map(([title, content]) => <article key={title}><h3>{title}</h3><p>{content}</p></article>)}</div><div className="help-notice"><ShieldCheck /><div><strong>Seguridad de laboratorio</strong><p>Usa solo las credenciales de demostracion. No publiques el archivo .env ni aceptes certificados desconocidos fuera de este entorno.</p></div></div><a className="api-doc-link" href="/docs" target="_blank" rel="noreferrer">Abrir documentacion interactiva de la API</a></section>;
 }
 
 function QualityPanel({ values }: { values: Record<string, number | string | null> }) {

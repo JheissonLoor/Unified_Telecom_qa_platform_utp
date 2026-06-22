@@ -64,6 +64,25 @@ async def quality_metrics(
     }
 
 
+@router.get("/metrics/quality-summary")
+async def quality_summary(
+    _: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    average_mos = await db.scalar(
+        select(func.avg(CallSession.mos)).where(CallSession.mos.is_not(None))
+    )
+    measured_calls = await db.scalar(
+        select(func.count()).select_from(CallSession).where(CallSession.mos.is_not(None))
+    )
+    value = round(float(average_mos), 2) if average_mos is not None else None
+    return {
+        "average_mos": value,
+        "measured_calls": measured_calls or 0,
+        "quality_gate": "NO_DATA" if value is None else "OPTIMAL" if value >= 3.6 else "REVIEW",
+    }
+
+
 @router.get("/monitoring/active-calls", response_model=list[ActiveCallView])
 async def active_calls(
     _: User = Depends(require_roles("Supervisor", "AdministradorQA")),

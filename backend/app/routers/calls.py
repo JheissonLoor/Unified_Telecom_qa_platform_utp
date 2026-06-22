@@ -12,13 +12,14 @@ from app.auditing import record_audit
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import current_user
-from app.models import CallDetailRecord, CallSession, User
+from app.models import CallDetailRecord, CallSession, User, UserPresence
 from app.schemas import (
     CallEventRequest,
     CallPage,
     CallQualityRequest,
     CallView,
     PresenceRequest,
+    PresenceView,
     SipConfigView,
 )
 from app.security import decrypt_secret
@@ -293,13 +294,31 @@ async def call_quality(
     return {"accepted": True, "mos": round(session.mos, 2)}
 
 
-@router.post("/presence", status_code=202)
+@router.get("/presence", response_model=PresenceView)
+async def current_presence(
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stored = await db.get(UserPresence, user.id)
+    if stored is None:
+        return PresenceView(do_not_disturb=False)
+    return PresenceView(do_not_disturb=stored.do_not_disturb, updated_at=stored.updated_at)
+
+
+@router.post("/presence", response_model=PresenceView, status_code=202)
 async def presence(
     payload: PresenceRequest,
     request: Request,
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    stored = await db.get(UserPresence, user.id)
+    if stored is None:
+        stored = UserPresence(user_id=user.id, do_not_disturb=payload.do_not_disturb)
+        db.add(stored)
+    else:
+        stored.do_not_disturb = payload.do_not_disturb
+    await db.flush()
     await record_audit(
         db,
         actor=user.username,
@@ -307,7 +326,8 @@ async def presence(
         outcome="SUCCESS",
         source_ip=request.client.host if request.client else None,
     )
-    return {"accepted": True, "do_not_disturb": payload.do_not_disturb}
+    await db.refresh(stored)
+    return PresenceView(do_not_disturb=stored.do_not_disturb, updated_at=stored.updated_at)
 
 
 @router.get("/recordings/{uniqueid}")

@@ -84,6 +84,11 @@ class PresenceRequest(BaseModel):
     do_not_disturb: bool
 
 
+class PresenceView(BaseModel):
+    do_not_disturb: bool
+    updated_at: datetime | None = None
+
+
 class UserAdminView(UserView):
     midpoint_oid: str | None = None
 

@@ -65,6 +65,17 @@ export interface ServiceStatus {
   network: "ok" | "degraded";
 }
 
+export interface Presence {
+  do_not_disturb: boolean;
+  updated_at: string | null;
+}
+
+export interface QualitySummary {
+  average_mos: number | null;
+  measured_calls: number;
+  quality_gate: "OPTIMAL" | "REVIEW" | "NO_DATA";
+}
+
 export interface ActiveCall {
   session_id: string;
   actor: string;

@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
     state,
     callPage: vi.fn(), services: vi.fn(), sipConfig: vi.fn(), audit: vi.fn(), quality: vi.fn(),
     activeCalls: vi.fn(), evaluations: vi.fn(), reportSummary: vi.fn(), users: vi.fn(),
+    currentPresence: vi.fn(), qualitySummary: vi.fn(),
     createEvaluation: vi.fn(), updateUserStatus: vi.fn(), presence: vi.fn(), callEvent: vi.fn(),
     callQuality: vi.fn(), recording: vi.fn(), connect: vi.fn(), call: vi.fn(), acceptIncoming: vi.fn(),
     rejectIncoming: vi.fn(), hangup: vi.fn(), attachMedia: vi.fn(), setMediaEnabled: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock("../api", () => ({
     callPage: mocks.callPage, services: mocks.services, sipConfig: mocks.sipConfig,
     audit: mocks.audit, quality: mocks.quality, activeCalls: mocks.activeCalls,
     evaluations: mocks.evaluations, reportSummary: mocks.reportSummary, users: mocks.users,
+    currentPresence: mocks.currentPresence, qualitySummary: mocks.qualitySummary,
     createEvaluation: mocks.createEvaluation, updateUserStatus: mocks.updateUserStatus,
     presence: mocks.presence, callEvent: mocks.callEvent, callQuality: mocks.callQuality,
     recording: mocks.recording,
@@ -73,11 +75,13 @@ describe("Dashboard", () => {
     mocks.sipConfig.mockResolvedValue({ extension: "2001" });
     mocks.audit.mockResolvedValue([]);
     mocks.quality.mockResolvedValue({ quality_gate: "OPTIMAL", average_mos: 4.1 });
+    mocks.qualitySummary.mockResolvedValue({ quality_gate: "OPTIMAL", average_mos: 4.1, measured_calls: 3 });
+    mocks.currentPresence.mockResolvedValue({ do_not_disturb: false, updated_at: null });
     mocks.activeCalls.mockResolvedValue([]);
     mocks.evaluations.mockResolvedValue([]);
     mocks.reportSummary.mockResolvedValue({ total_calls: 1, answered_calls: 1, failed_calls: 0, answer_rate: 100, average_duration_seconds: 60, average_mos: 4.2 });
     mocks.users.mockResolvedValue([{ ...agent, midpoint_oid: null }]);
-    mocks.presence.mockResolvedValue({ accepted: true, do_not_disturb: true });
+    mocks.presence.mockImplementation(async (doNotDisturb: boolean) => ({ do_not_disturb: doNotDisturb, updated_at: null }));
     mocks.callEvent.mockResolvedValue({ accepted: true });
     mocks.callQuality.mockResolvedValue({ accepted: true, mos: 4.2 });
     mocks.connect.mockImplementation(async () => mocks.state.callbacks?.onRegistration("registered"));
@@ -191,7 +195,8 @@ describe("Dashboard", () => {
     await screen.findByText("Llamadas recientes");
     fireEvent.click(screen.getByRole("button", { name: "Alternar menu" }));
     fireEvent.click(screen.getByRole("button", { name: "Ayuda" }));
-    expect(screen.getByText(/demo-guide/)).toBeVisible();
+    expect(screen.getByText("Centro de ayuda")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Inicio" }));
 
     fireEvent.click(screen.getByRole("button", { name: /No Molestar/ }));
     await waitFor(() => expect(mocks.presence).toHaveBeenCalledWith(true));
@@ -222,6 +227,22 @@ describe("Dashboard", () => {
     await waitFor(() => expect(mocks.call).toHaveBeenLastCalledWith("700", false), { timeout: 1500 });
   });
 
+  it("opera lineas especiales y conserva la presencia cargada", async () => {
+    mocks.currentPresence.mockResolvedValueOnce({ do_not_disturb: true, updated_at: "2026-06-21T10:00:00Z" });
+    render(<Dashboard user={agent} onLogout={vi.fn()} />);
+    expect(await screen.findByDisplayValue("No molestar")).toBeVisible();
+    mocks.state.callbacks?.onRegistration("registered");
+
+    fireEvent.change(screen.getByLabelText("Linea de salida"), { target: { value: "ivr" } });
+    fireEvent.click(screen.getByRole("button", { name: "Llamada de Voz" }));
+    await waitFor(() => expect(mocks.call).toHaveBeenCalledWith("701", false));
+    mocks.state.callbacks?.onSession(null);
+
+    fireEvent.change(screen.getByLabelText("Linea de salida"), { target: { value: "conference-video" } });
+    fireEvent.click(screen.getByRole("button", { name: "Llamada de Video" }));
+    await waitFor(() => expect(mocks.call).toHaveBeenCalledWith("702", true));
+  });
+
   it("filtra, pagina y reproduce una grabacion", async () => {
     mocks.callPage.mockResolvedValue({ items: [
       { ...callRecord, recording_available: true },
@@ -248,6 +269,17 @@ describe("Dashboard", () => {
     unmount();
   });
 
+  it("traduce estados, alerta MOS bajo y abre el detalle del CDR", async () => {
+    mocks.callPage.mockResolvedValue({ items: [{ ...callRecord, disposition: "FAILED", mos: 2.9 }], total: 1, limit: 5, offset: 0 });
+    render(<Dashboard user={agent} onLogout={vi.fn()} />);
+    expect(await screen.findByText("Fallida")).toBeVisible();
+    expect(screen.getByText("Calidad de llamada")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Acciones de llamada 1" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" }));
+    expect(await screen.findByText("Detalle de llamada #1")).toBeVisible();
+    expect(screen.getByText("MOS 2.90")).toBeVisible();
+  });
+
   it("muestra estados degradados y tablas vacias sin romper la consola", async () => {
     mocks.callPage.mockResolvedValue({ items: [], total: 0, limit: 5, offset: 0 });
     mocks.services.mockResolvedValue({ api: "ok", database: "error", pbx: "error", recording: "error", ivr: "error", network: "degraded" });
@@ -255,7 +287,7 @@ describe("Dashboard", () => {
     render(<Dashboard user={supervisor} onLogout={vi.fn()} />);
     expect(await screen.findByText("No hay actividad reciente.")).toBeVisible();
     expect(screen.getByText("No hay CDR para los filtros seleccionados.")).toBeVisible();
-    expect(screen.getByText("REVISAR")).toBeVisible();
+    expect(screen.getByText("OPTIMA")).toBeVisible();
     expect(screen.getAllByText("FALLO")).toHaveLength(4);
     expect(screen.getByRole("button", { name: "Auditoria" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Reportes" }));

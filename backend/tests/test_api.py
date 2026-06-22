@@ -172,6 +172,9 @@ def test_health_authentication_calls_and_governance():
         )
         assert presence.status_code == 202
         assert presence.json()["do_not_disturb"] is True
+        stored_presence = client.get("/api/presence", headers=auth(agent_token))
+        assert stored_presence.status_code == 200
+        assert stored_presence.json()["do_not_disturb"] is True
 
         ended = client.post(
             "/api/calls/events",
@@ -193,6 +196,7 @@ def test_health_authentication_calls_and_governance():
         active = client.get("/api/monitoring/active-calls", headers=auth(supervisor_token))
         reports = client.get("/api/reports/summary", headers=auth(supervisor_token))
         services = client.get("/api/services/status", headers=auth(agent_token))
+        quality_summary = client.get("/api/metrics/quality-summary", headers=auth(agent_token))
         users = client.get("/api/users", headers=auth(admin_token))
         assert audit.status_code == 200
         assert len(audit.json()) > 0
@@ -201,6 +205,8 @@ def test_health_authentication_calls_and_governance():
         assert active.status_code == 200
         assert reports.status_code == 200
         assert services.status_code == 200
+        assert quality_summary.status_code == 200
+        assert quality_summary.json()["measured_calls"] >= 1
         assert services.json()["api"] == "ok"
         assert users.status_code == 200
         assert len(users.json()) >= 4

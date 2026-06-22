@@ -30,6 +30,16 @@ class User(Base):
     extension: Mapped["Extension | None"] = relationship(back_populates="user", uselist=False)
 
 
+class UserPresence(Base):
+    __tablename__ = "user_presence"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    do_not_disturb: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class Extension(Base):
     __tablename__ = "extensions"
 
