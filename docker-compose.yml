@@ -44,6 +44,10 @@ services:
       TURN_PASSWORD: ${TURN_PASSWORD:?Run scripts/bootstrap.ps1 first}
       ASTERISK_HOST: asterisk
       ASTERISK_HTTP_PORT: 8088
+      ASTERISK_AMI_HOST: asterisk
+      ASTERISK_AMI_PORT: 5038
+      ASTERISK_AMI_USER: backend-events
+      ASTERISK_AMI_SECRET: ${ASTERISK_AMI_SECRET:?Run scripts/bootstrap.ps1 first}
       RECORDINGS_DIR: /recordings
     depends_on:
       postgres: { condition: service_healthy }
@@ -80,6 +84,7 @@ services:
       SIP_1002_SECRET: ${SIP_1002_SECRET:?Run scripts/bootstrap.ps1 first}
       WEBRTC_2001_SECRET: ${WEBRTC_2001_SECRET:?Run scripts/bootstrap.ps1 first}
       WEBRTC_2002_SECRET: ${WEBRTC_2002_SECRET:?Run scripts/bootstrap.ps1 first}
+      ASTERISK_AMI_SECRET: ${ASTERISK_AMI_SECRET:?Run scripts/bootstrap.ps1 first}
       ASTERISK_EXTERNAL_ADDRESS: ${ASTERISK_EXTERNAL_ADDRESS:-}
       ASTERISK_LOCAL_NET: ${ASTERISK_LOCAL_NET:-}
       HOST_SIP_UDP_PORT: ${HOST_SIP_UDP_PORT:-5060}

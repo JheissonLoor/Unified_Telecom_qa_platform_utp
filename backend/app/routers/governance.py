@@ -1,8 +1,14 @@
 import asyncio
+from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
 import secrets
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import Response
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,6 +18,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.dependencies import current_user, require_roles
 from app.models import AuditEvent, CallDetailRecord, CallSession, Extension, QualityEvaluation, User
+from app.realtime import event_hub
 from app.schemas import (
     ActiveCallView,
     AuditView,
@@ -137,11 +144,7 @@ async def create_evaluation(
     return evaluation
 
 
-@router.get("/reports/summary")
-async def report_summary(
-    _: User = Depends(require_roles("Supervisor", "AdministradorQA")),
-    db: AsyncSession = Depends(get_db),
-):
+async def _report_summary(db: AsyncSession) -> dict:
     total = await db.scalar(select(func.count()).select_from(CallDetailRecord)) or 0
     answered = await db.scalar(
         select(func.count()).select_from(CallDetailRecord).where(CallDetailRecord.disposition == "ANSWERED")
@@ -159,6 +162,84 @@ async def report_summary(
         "average_duration_seconds": round(float(average_duration or 0), 1),
         "average_mos": round(float(average_mos), 2) if average_mos is not None else None,
     }
+
+
+def build_summary_pdf(summary: dict, generated_by: str) -> bytes:
+    buffer = BytesIO()
+    document = canvas.Canvas(buffer, pagesize=A4, title="Reporte QA de telecomunicaciones")
+    width, height = A4
+    document.setFillColor(colors.HexColor("#082d46"))
+    document.rect(0, height - 92, width, 92, fill=1, stroke=0)
+    document.setFillColor(colors.white)
+    document.setFont("Helvetica-Bold", 18)
+    document.drawString(42, height - 48, "Unified Telecom QA")
+    document.setFont("Helvetica", 10)
+    document.drawString(42, height - 68, "Reporte operativo y de calidad")
+    document.setFillColor(colors.HexColor("#203746"))
+    document.setFont("Helvetica", 9)
+    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    document.drawString(42, height - 118, f"Generado por: {generated_by}")
+    document.drawRightString(width - 42, height - 118, f"Fecha: {generated}")
+
+    metrics = [
+        ("Llamadas totales", summary["total_calls"]),
+        ("Llamadas contestadas", summary["answered_calls"]),
+        ("Llamadas fallidas", summary["failed_calls"]),
+        ("Tasa de respuesta", f'{summary["answer_rate"]}%'),
+        ("Duracion media", f'{summary["average_duration_seconds"]} s'),
+        ("MOS promedio", summary["average_mos"] if summary["average_mos"] is not None else "Sin datos"),
+    ]
+    y = height - 168
+    for index, (label, value) in enumerate(metrics):
+        column = index % 2
+        if index and column == 0:
+            y -= 86
+        x = 42 + column * 258
+        document.setFillColor(colors.HexColor("#f2f7f8"))
+        document.roundRect(x, y - 58, 232, 66, 4, fill=1, stroke=0)
+        document.setFillColor(colors.HexColor("#627582"))
+        document.setFont("Helvetica", 8)
+        document.drawString(x + 14, y - 14, label.upper())
+        document.setFillColor(colors.HexColor("#082d46"))
+        document.setFont("Helvetica-Bold", 18)
+        document.drawString(x + 14, y - 42, str(value))
+
+    document.setFillColor(colors.HexColor("#527080"))
+    document.setFont("Helvetica", 8)
+    document.drawString(42, 54, "Evidencia generada por la plataforma. Valores MOS provienen de estadisticas WebRTC.")
+    document.drawRightString(width - 42, 32, "Pagina 1 de 1")
+    document.save()
+    return buffer.getvalue()
+
+
+@router.get("/reports/summary")
+async def report_summary(
+    _: User = Depends(require_roles("Supervisor", "AdministradorQA")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _report_summary(db)
+
+
+@router.get("/reports/summary.pdf")
+async def report_summary_pdf(
+    user: User = Depends(require_roles("Supervisor", "AdministradorQA")),
+    db: AsyncSession = Depends(get_db),
+):
+    summary = await _report_summary(db)
+    payload = build_summary_pdf(summary, user.username)
+    await record_audit(
+        db,
+        actor=user.username,
+        action="REPORT_PDF_EXPORTED",
+        outcome="SUCCESS",
+        details={"bytes": len(payload)},
+    )
+    await event_hub.publish("report.exported", {"actor": user.username, "format": "pdf"})
+    return Response(
+        content=payload,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="reporte-telecom-qa.pdf"'},
+    )
 
 
 @router.get("/users", response_model=list[UserAdminView])

@@ -26,6 +26,7 @@ $values = @{
     JWT_SECRET = New-RandomValue 48
     APP_ENCRYPTION_KEY = New-FernetKey
     PROVISIONING_TOKEN = New-RandomValue 48
+    ASTERISK_AMI_SECRET = New-RandomValue 32
     DEMO_AGENT_PASSWORD = New-RandomValue
     DEMO_AGENT2_PASSWORD = New-RandomValue
     DEMO_SUPERVISOR_PASSWORD = New-RandomValue

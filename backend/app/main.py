@@ -1,4 +1,5 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,8 @@ from sqlalchemy import select
 from app.config import get_settings
 from app.database import SessionLocal, engine
 from app.models import Base, Extension, User
-from app.routers import auth, calls, governance
+from app.realtime import run_ami_listener
+from app.routers import auth, calls, events, governance
 from app.security import encrypt_secret, hash_password
 
 
@@ -50,8 +52,14 @@ async def lifespan(_: FastAPI):
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
     await seed_demo_users()
-    yield
-    await engine.dispose()
+    ami_task = asyncio.create_task(run_ami_listener())
+    try:
+        yield
+    finally:
+        ami_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await ami_task
+        await engine.dispose()
 
 
 app = FastAPI(
@@ -70,6 +78,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(calls.router)
 app.include_router(governance.router)
+app.include_router(events.router)
 
 
 @app.get("/health", tags=["operations"])

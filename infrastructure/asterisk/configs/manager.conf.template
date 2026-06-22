@@ -1,0 +1,13 @@
+[general]
+enabled=yes
+webenabled=no
+port=5038
+bindaddr=0.0.0.0
+displayconnects=no
+timestampevents=yes
+
+; AMI no se publica en el host. Solo el backend de la red voice usa esta cuenta.
+[backend-events]
+secret=${ASTERISK_AMI_SECRET}
+read=system,call,log,verbose,agent,user,dtmf,reporting,cdr,dialplan
+write=none

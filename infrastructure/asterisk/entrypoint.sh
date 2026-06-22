@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-required="POSTGRES_PASSWORD SIP_1001_SECRET SIP_1002_SECRET WEBRTC_2001_SECRET WEBRTC_2002_SECRET"
+required="POSTGRES_PASSWORD SIP_1001_SECRET SIP_1002_SECRET WEBRTC_2001_SECRET WEBRTC_2002_SECRET ASTERISK_AMI_SECRET"
 for name in $required; do
   eval "value=\${$name:-}"
   if [ -z "$value" ]; then

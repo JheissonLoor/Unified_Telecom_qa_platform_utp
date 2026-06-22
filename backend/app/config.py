@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     turn_password: str
     asterisk_host: str = "asterisk"
     asterisk_http_port: int = 8088
+    asterisk_ami_host: str = "asterisk"
+    asterisk_ami_port: int = 5038
+    asterisk_ami_user: str = "backend-events"
+    asterisk_ami_secret: str = Field(min_length=24)
     recordings_dir: str = "/recordings"
 
 

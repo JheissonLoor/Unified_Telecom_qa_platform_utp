@@ -58,6 +58,13 @@ export const api = {
     body: JSON.stringify({ call_id: callId, score, notes }),
   }),
   reportSummary: () => request<ReportSummary>("/api/reports/summary"),
+  reportPdf: async () => {
+    const response = await fetch("/api/reports/summary.pdf", {
+      headers: session.token ? { Authorization: `Bearer ${session.token}` } : {},
+    });
+    if (!response.ok) throw new Error("No se pudo generar el reporte PDF");
+    return response.blob();
+  },
   users: () => request<AdminUser[]>("/api/users"),
   updateUserStatus: (username: string, active: boolean) => request<AdminUser>(`/api/users/${encodeURIComponent(username)}/status`, {
     method: "PATCH",

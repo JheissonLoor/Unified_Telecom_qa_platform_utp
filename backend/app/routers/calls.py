@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.dependencies import current_user
 from app.models import CallDetailRecord, CallSession, User, UserPresence
+from app.realtime import event_hub
 from app.schemas import (
     CallEventRequest,
     CallPage,
@@ -261,6 +262,17 @@ async def call_event(
         correlation_id=payload.session_id,
         details={"destination": payload.destination, "media": payload.media, "target": payload.target},
     )
+    await event_hub.publish(
+        f"call.{payload.event}",
+        {
+            "actor": user.username,
+            "source": extension,
+            "destination": payload.destination,
+            "media": payload.media,
+            "session_id": payload.session_id,
+            "target": payload.target,
+        },
+    )
     return {"accepted": True}
 
 
@@ -290,6 +302,14 @@ async def call_quality(
         outcome="SUCCESS",
         correlation_id=payload.session_id,
         details={"mos": round(session.mos, 2), "packets_lost": payload.packets_lost},
+    )
+    await event_hub.publish(
+        "quality.updated",
+        {
+            "actor": user.username,
+            "session_id": payload.session_id,
+            "mos": round(session.mos, 2),
+        },
     )
     return {"accepted": True, "mos": round(session.mos, 2)}
 
@@ -325,6 +345,10 @@ async def presence(
         action="DND_ENABLED" if payload.do_not_disturb else "DND_DISABLED",
         outcome="SUCCESS",
         source_ip=request.client.host if request.client else None,
+    )
+    await event_hub.publish(
+        "presence.updated",
+        {"actor": user.username, "do_not_disturb": stored.do_not_disturb},
     )
     await db.refresh(stored)
     return PresenceView(do_not_disturb=stored.do_not_disturb, updated_at=stored.updated_at)

@@ -105,4 +105,21 @@ describe("api", () => {
     await api.recording("public-shape");
     expect(fetchMock.mock.calls[2][1]?.headers).toEqual({});
   });
+
+  it("consulta presencia y calidad resumida y descarga el PDF autenticado", async () => {
+    session.token = "token";
+    const pdf = new Blob(["%PDF-1.4"], { type: "application/pdf" });
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(jsonResponse({ do_not_disturb: false }))
+      .mockResolvedValueOnce(jsonResponse({ average_mos: 4.2, measured_calls: 2, quality_gate: "OPTIMAL" }))
+      .mockResolvedValueOnce(new Response(pdf, { status: 200, headers: { "Content-Type": "application/pdf" } }));
+
+    await api.currentPresence();
+    await api.qualitySummary();
+    const downloaded = await api.reportPdf();
+
+    expect(downloaded.type).toBe("application/pdf");
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/reports/summary.pdf");
+    expect(fetchMock.mock.calls[2][1]?.headers).toEqual({ Authorization: "Bearer token" });
+  });
 });

@@ -6,6 +6,7 @@ import pytest
 from app.models import CallDetailRecord, CallSession, Extension, User
 from app.routers import auth as auth_router
 from app.routers import calls, governance
+from app.realtime import EventHub, parse_ami_frame
 from app.schemas import CallEventRequest, CallQualityRequest, LoginRequest
 
 
@@ -222,3 +223,39 @@ async def test_direct_authentication_and_report_summary(monkeypatch):
         "average_duration_seconds": 42.2,
         "average_mos": 4.12,
     }
+
+
+@pytest.mark.asyncio
+async def test_realtime_hub_and_ami_parser():
+    parsed = parse_ami_frame(
+        b"Event: Newstate\r\nChannelStateDesc: Up\r\nCallerIDNum: 2001\r\n\r\n"
+    )
+    assert parsed == {
+        "Event": "Newstate",
+        "ChannelStateDesc": "Up",
+        "CallerIDNum": "2001",
+    }
+    hub = EventHub()
+    subscription = hub.subscribe()
+    queue = await anext(subscription)
+    await hub.publish("call.answered", {"destination": "2002"})
+    event = await queue.get()
+    assert event["type"] == "call.answered"
+    assert event["data"]["destination"] == "2002"
+    await subscription.aclose()
+
+
+def test_pdf_builder_returns_a_real_document():
+    payload = governance.build_summary_pdf(
+        {
+            "total_calls": 10,
+            "answered_calls": 8,
+            "failed_calls": 2,
+            "answer_rate": 80.0,
+            "average_duration_seconds": 42.2,
+            "average_mos": 4.12,
+        },
+        "supervisor",
+    )
+    assert payload.startswith(b"%PDF")
+    assert len(payload) > 1000

@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => {
   return {
     state,
     callPage: vi.fn(), services: vi.fn(), sipConfig: vi.fn(), audit: vi.fn(), quality: vi.fn(),
-    activeCalls: vi.fn(), evaluations: vi.fn(), reportSummary: vi.fn(), users: vi.fn(),
+    activeCalls: vi.fn(), evaluations: vi.fn(), reportSummary: vi.fn(), reportPdf: vi.fn(), users: vi.fn(),
     currentPresence: vi.fn(), qualitySummary: vi.fn(),
     createEvaluation: vi.fn(), updateUserStatus: vi.fn(), presence: vi.fn(), callEvent: vi.fn(),
     callQuality: vi.fn(), recording: vi.fn(), connect: vi.fn(), call: vi.fn(), acceptIncoming: vi.fn(),
@@ -25,14 +25,25 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("../api", () => ({
+  session: { token: "dashboard-test-token" },
   api: {
     callPage: mocks.callPage, services: mocks.services, sipConfig: mocks.sipConfig,
     audit: mocks.audit, quality: mocks.quality, activeCalls: mocks.activeCalls,
-    evaluations: mocks.evaluations, reportSummary: mocks.reportSummary, users: mocks.users,
+    evaluations: mocks.evaluations, reportSummary: mocks.reportSummary, reportPdf: mocks.reportPdf, users: mocks.users,
     currentPresence: mocks.currentPresence, qualitySummary: mocks.qualitySummary,
     createEvaluation: mocks.createEvaluation, updateUserStatus: mocks.updateUserStatus,
     presence: mocks.presence, callEvent: mocks.callEvent, callQuality: mocks.callQuality,
     recording: mocks.recording,
+  },
+}));
+
+vi.mock("../realtime", () => ({
+  RealtimeClient: class {
+    constructor(_token: string, _onEvent: unknown, onStatus: (connected: boolean) => void) {
+      onStatus(true);
+    }
+    connect() {}
+    disconnect() {}
   },
 }));
 
@@ -80,6 +91,7 @@ describe("Dashboard", () => {
     mocks.activeCalls.mockResolvedValue([]);
     mocks.evaluations.mockResolvedValue([]);
     mocks.reportSummary.mockResolvedValue({ total_calls: 1, answered_calls: 1, failed_calls: 0, answer_rate: 100, average_duration_seconds: 60, average_mos: 4.2 });
+    mocks.reportPdf.mockResolvedValue(new Blob(["%PDF"], { type: "application/pdf" }));
     mocks.users.mockResolvedValue([{ ...agent, midpoint_oid: null }]);
     mocks.presence.mockImplementation(async (doNotDisturb: boolean) => ({ do_not_disturb: doNotDisturb, updated_at: null }));
     mocks.callEvent.mockResolvedValue({ accepted: true });
@@ -106,6 +118,7 @@ describe("Dashboard", () => {
     mocks.updateUserStatus.mockResolvedValue({ ...agent, active: false, midpoint_oid: null });
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:recording");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
   });
 
   it("registra SIP y opera voz, retencion, DTMF y video", async () => {
@@ -156,6 +169,8 @@ describe("Dashboard", () => {
     expect(await screen.findByText("No hay llamadas activas.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Reportes" }));
     expect(await screen.findByText("100%")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Exportar PDF" }));
+    await waitFor(() => expect(mocks.reportPdf).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: "Gestion de usuarios" }));
     expect(await screen.findByText("Identidades sincronizadas con midPoint")).toBeVisible();
   });
@@ -288,7 +303,7 @@ describe("Dashboard", () => {
     expect(await screen.findByText("No hay actividad reciente.")).toBeVisible();
     expect(screen.getByText("No hay CDR para los filtros seleccionados.")).toBeVisible();
     expect(screen.getByText("OPTIMA")).toBeVisible();
-    expect(screen.getAllByText("FALLO")).toHaveLength(4);
+    expect(screen.getAllByText("FALLO")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Auditoria" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Reportes" }));
     expect(await screen.findByText("100%")).toBeVisible();

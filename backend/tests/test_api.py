@@ -195,6 +195,7 @@ def test_health_authentication_calls_and_governance():
         supervisor_metrics = client.get("/api/metrics/quality", headers=auth(supervisor_token))
         active = client.get("/api/monitoring/active-calls", headers=auth(supervisor_token))
         reports = client.get("/api/reports/summary", headers=auth(supervisor_token))
+        report_pdf = client.get("/api/reports/summary.pdf", headers=auth(supervisor_token))
         services = client.get("/api/services/status", headers=auth(agent_token))
         quality_summary = client.get("/api/metrics/quality-summary", headers=auth(agent_token))
         users = client.get("/api/users", headers=auth(admin_token))
@@ -204,6 +205,9 @@ def test_health_authentication_calls_and_governance():
         assert supervisor_metrics.status_code == 200
         assert active.status_code == 200
         assert reports.status_code == 200
+        assert report_pdf.status_code == 200
+        assert report_pdf.headers["content-type"] == "application/pdf"
+        assert report_pdf.content.startswith(b"%PDF")
         assert services.status_code == 200
         assert quality_summary.status_code == 200
         assert quality_summary.json()["measured_calls"] >= 1
@@ -212,6 +216,12 @@ def test_health_authentication_calls_and_governance():
         assert len(users.json()) >= 4
         assert metrics.json()["users"] >= 4
         assert metrics.json()["audit_events"] > 0
+
+        with client.websocket_connect("/api/events/ws") as websocket:
+            websocket.send_json({"token": agent_token})
+            ready = websocket.receive_json()
+            assert ready["type"] == "ready"
+            assert ready["data"]["username"] == "agente1"
 
         self_disable = client.patch(
             "/api/users/adminqa/status",

@@ -8,7 +8,8 @@ import {
   Speaker, Star, Users, UserRound, Video, X,
 } from "lucide-react";
 import type { Session } from "sip.js";
-import { api } from "../api";
+import { api, session } from "../api";
+import { RealtimeClient } from "../realtime";
 import {
   SipClient, type IncomingCall, type RegistrationState,
 } from "../sip";
@@ -79,10 +80,12 @@ export function Dashboard({ user, onLogout }: Props) {
   const [filters, setFilters] = useState({ search: "", disposition: "", date: "" });
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [recordingTitle, setRecordingTitle] = useState("");
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
   const sip = useRef<SipClient>();
   const recordingUrlRef = useRef<string | null>(null);
+  const realtime = useRef<RealtimeClient | null>(null);
 
   const calls = callsPage.items;
   const canSupervise = user.role === "Supervisor" || user.role === "AdministradorQA";
@@ -128,13 +131,34 @@ export function Dashboard({ user, onLogout }: Props) {
       api.currentPresence().then((value) => setDoNotDisturb(value.do_not_disturb)),
       api.qualitySummary().then(setQualitySummary),
     ]).catch(() => setMessage("Algunos datos operativos no estan disponibles"));
+    let realtimeRefresh: number | null = null;
+    realtime.current = new RealtimeClient(
+      session.token ?? "",
+      (event) => {
+        if (event.type === "presence.updated" && event.data.actor === user.username) {
+          setDoNotDisturb(Boolean(event.data.do_not_disturb));
+        }
+        if (realtimeRefresh !== null) window.clearTimeout(realtimeRefresh);
+        realtimeRefresh = window.setTimeout(() => {
+          void Promise.all([
+            api.callPage({ limit: 5, offset: 0 }).then(setCallsPage),
+            api.qualitySummary().then(setQualitySummary),
+            api.services().then(setServices),
+          ]).catch(() => undefined);
+        }, 250);
+      },
+      setRealtimeConnected,
+    );
+    realtime.current.connect();
     const serviceTimer = window.setInterval(() => void refreshServices(), 30000);
     return () => {
       window.clearInterval(serviceTimer);
+      if (realtimeRefresh !== null) window.clearTimeout(realtimeRefresh);
+      realtime.current?.disconnect();
       sip.current?.disconnect().catch(() => undefined);
       if (recordingUrlRef.current) URL.revokeObjectURL(recordingUrlRef.current);
     };
-  }, []);
+  }, [user.username]);
 
   async function connectSip() {
     try {
@@ -307,6 +331,21 @@ export function Dashboard({ user, onLogout }: Props) {
     setMessage(`Usuario ${username} ${active ? "activado" : "desactivado"}`);
   }
 
+  async function exportReportPdf() {
+    try {
+      const blob = await api.reportPdf();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "reporte-telecom-qa.pdf";
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setMessage("Reporte PDF generado correctamente");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo exportar el reporte");
+    }
+  }
+
   const nav = [
     ["home", "Inicio", Home], ["calls", "Llamadas", Phone], ["history", "Historial", History],
     ["quality", "Calidad", BarChart3], ["audit", "Auditoria", ClipboardCheck],
@@ -326,7 +365,7 @@ export function Dashboard({ user, onLogout }: Props) {
         <button className="topbar-menu" onClick={() => setSidebarOpen((value) => !value)} aria-label="Alternar menu"><Menu /></button>
         <div className="product"><AudioLines /><strong>Unified Telecom QA</strong></div>
         <div className="role-label">{user.role === "AgenteCallCenter" ? "Agente Call Center" : user.role}</div>
-        <ServiceStrip values={services} />
+        <ServiceStrip values={services} realtimeConnected={realtimeConnected} />
         <div className="global-quality" title={qualitySummary.average_mos === null ? "Aun no hay llamadas medidas" : `MOS promedio ${qualitySummary.average_mos}`}><span>Calidad Global</span><strong className={qualityGlobal ? "good" : "warn"}>{qualityLabel}</strong></div>
         <div className="identity"><UserRound /><div><strong>{user.display_name}</strong><small>{user.role}</small><span><i /> En linea</span></div><button onClick={onLogout} aria-label="Cerrar sesion"><LogOut size={18} /></button></div>
       </header>
@@ -383,7 +422,7 @@ export function Dashboard({ user, onLogout }: Props) {
         {view === "audit" ? <AuditTable values={audits} /> : null}
         {view === "monitoring" ? <MonitoringPanel values={activeCalls} onRefresh={async () => setActiveCalls(await api.activeCalls())} /> : null}
         {view === "evaluations" ? <EvaluationsPanel values={evaluations} calls={calls} onSubmit={submitEvaluation} /> : null}
-        {view === "reports" ? <ReportsPanel value={report} /> : null}
+        {view === "reports" ? <ReportsPanel value={report} onExport={exportReportPdf} /> : null}
         {view === "users" ? <UsersPanel values={users} onToggle={updateUserStatus} /> : null}
         {view === "help" ? <HelpPanel /> : null}
       </main>
@@ -395,8 +434,8 @@ export function Dashboard({ user, onLogout }: Props) {
   );
 }
 
-function ServiceStrip({ values }: { values: ServiceStatus }) {
-  const items = [["PBX", values.pbx], ["Grabacion", values.recording], ["IVR", values.ivr], ["Red", values.network]] as const;
+function ServiceStrip({ values, realtimeConnected }: { values: ServiceStatus; realtimeConnected: boolean }) {
+  const items = [["PBX", values.pbx], ["Grabacion", values.recording], ["IVR", values.ivr], ["Eventos", realtimeConnected ? "ok" : "error"]] as const;
   return <div className="service-strip"><small>Estado de Servicios</small>{items.map(([label, state]) => <span key={label} className={state === "ok" ? "ok" : "fail"}><i />{label}<b>{state === "ok" ? "OK" : "FALLO"}</b></span>)}</div>;
 }
 
@@ -461,10 +500,10 @@ function EvaluationsPanel({ values, calls, onSubmit }: { values: Evaluation[]; c
   return <section className="governance-panel"><PanelHeader title="Evaluaciones QA" subtitle="Calificacion documentada de llamadas" icon={Star} /><form className="evaluation-form" onSubmit={(event) => { event.preventDefault(); void onSubmit(callId, score, notes); setNotes(""); }}><label>Llamada<select value={callId} onChange={(event) => setCallId(Number(event.target.value))}>{calls.map((call) => <option key={call.id} value={call.id}>#{call.id} {call.src} a {call.dst}</option>)}</select></label><label>Puntaje<input type="number" min="1" max="100" value={score} onChange={(event) => setScore(Number(event.target.value))} /></label><label className="evaluation-notes">Observaciones<textarea value={notes} onChange={(event) => setNotes(event.target.value)} /></label><button disabled={!callId}>Registrar evaluacion</button></form><div className="evaluation-list">{values.map((value) => <article key={value.id}><strong>{value.score}/100</strong><div><b>Llamada #{value.call_id}</b><p>{value.notes || "Sin observaciones"}</p><small>{value.evaluator} · {new Date(value.created_at).toLocaleString()}</small></div></article>)}</div></section>;
 }
 
-function ReportsPanel({ value }: { value: ReportSummary | null }) {
+function ReportsPanel({ value, onExport }: { value: ReportSummary | null; onExport: () => Promise<void> }) {
   if (!value) return <section className="governance-panel"><p className="empty">Reporte no disponible.</p></section>;
   const metrics = [["Llamadas totales", value.total_calls], ["Contestadas", value.answered_calls], ["Fallidas", value.failed_calls], ["Tasa de respuesta", `${value.answer_rate}%`], ["Duracion media", duration(Math.round(value.average_duration_seconds))], ["MOS promedio", value.average_mos?.toFixed(2) ?? "Sin datos"]] as const;
-  return <section className="governance-panel"><PanelHeader title="Reportes operativos" subtitle="Resumen de desempeño y calidad" icon={BarChart3} action={<button onClick={() => window.print()}><Download />Exportar PDF</button>} /><div className="metric-grid report-grid">{metrics.map(([label, metric]) => <article key={label}><small>{label}</small><strong>{metric}</strong></article>)}</div></section>;
+  return <section className="governance-panel"><PanelHeader title="Reportes operativos" subtitle="Resumen de desempeño y calidad" icon={BarChart3} action={<button onClick={() => void onExport()}><Download />Exportar PDF</button>} /><div className="metric-grid report-grid">{metrics.map(([label, metric]) => <article key={label}><small>{label}</small><strong>{metric}</strong></article>)}</div></section>;
 }
 
 function UsersPanel({ values, onToggle }: { values: AdminUser[]; onToggle: (username: string, active: boolean) => Promise<void> }) {
