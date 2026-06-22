@@ -65,6 +65,7 @@ jobs:
       WEBRTC_2001_SECRET: WebRtcPass2001!
       WEBRTC_2002_SECRET: WebRtcPass2002!
       TURN_PASSWORD: TurnPass123!
+      ASTERISK_AMI_SECRET: ci-asterisk-ami-secret-with-thirty-two-characters
       ASTERISK_HOST: 127.0.0.1
       RECORDINGS_DIR: /tmp/recordings
     steps:
