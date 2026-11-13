@@ -131,6 +131,11 @@ Las pruebas integradas requieren el stack activo. Los reportes se escriben bajo
 - [Riesgos](docs/risk_matrix.md), [puertos](docs/ports.md) y [modelo de amenazas](docs/security/threat-model.md)
 - [Reporte QA](docs/qa_report.md), [evidencias](docs/evidence_checklist.md) y [demo](docs/demo-guide.md)
 
+## Autoria y Aportes Tecnicos
+
+Proyecto academico colaborativo de Calidad de Software (UTP).
+- **Jheisson Loayza Ortega:** Diseno e integracion de la arquitectura de senalizacion PJSIP y clientes WebRTC (SIP.js), conexion del backend FastAPI con eventos Asterisk AMI, y configuracion de los Quality Gates automatizados en GitHub Actions bajo estandares ISO/IEC 25010.
+
 ## Limitaciones declaradas
 
 - Compose en un solo host no representa alta disponibilidad de produccion.
